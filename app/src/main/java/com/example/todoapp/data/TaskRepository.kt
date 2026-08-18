@@ -3,66 +3,49 @@ package com.example.todoapp.data
 import android.content.Context
 import com.example.todoapp.model.Priority
 import com.example.todoapp.model.Task
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.File
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
-class TaskRepository(private val context: Context) {
+class TaskRepository(context: Context) {
 
-    private val file: File
-        get() = File(context.filesDir, "tasks.json")
+    private val dao = AppDatabase.getInstance(context).taskDao()
 
-    fun saveTasks(tasks: List<Task>) {
-        val arr = JSONArray()
-        tasks.forEach { task ->
-            val obj = JSONObject()
-            obj.put("id", task.id)
-            obj.put("title", task.title)
-            obj.put("isDone", task.isDone)
-            obj.put("priority", task.priority.name)
-            arr.put(obj)
-        }
-        file.writeText(arr.toString())
+    val tasks: Flow<List<Task>> = dao.getAllTasks().map { list -> list.map { it.toTask() } }
+
+    suspend fun addTask(title: String) {
+        dao.insertTask(TaskEntity(title = title, priority = Priority.MEDIUM.name))
     }
 
-    fun loadTasks(): List<Task> {
-        if (!file.exists()) return emptyList()
-        val text = file.readText()
-        if (text.isBlank()) return emptyList()
-
-        val arr = JSONArray(text)
-        val tasks = mutableListOf<Task>()
-        for (i in 0 until arr.length()) {
-            val obj = arr.getJSONObject(i)
-            val priority = try {
-                Priority.valueOf(obj.optString("priority", "MEDIUM"))
-            } catch (e: IllegalArgumentException) {
-                Priority.MEDIUM
-            }
-            tasks.add(
-                Task(
-                    id = obj.getInt("id"),
-                    title = obj.getString("title"),
-                    isDone = obj.optBoolean("isDone", false),
-                    priority = priority
-                )
-            )
-        }
-        return tasks
+    suspend fun updateTask(id: Int, newTitle: String) {
+        dao.updateTitle(id, newTitle)
     }
 
-    fun seedIfEmpty(): List<Task> {
-        val existing = loadTasks()
-        if (existing.isNotEmpty()) return existing
+    suspend fun toggleTask(id: Int) {
+        dao.toggleDone(id)
+    }
 
-        val sample = listOf(
-            Task(1, "Buy groceries", priority = Priority.MEDIUM),
-            Task(2, "Complete Kotlin assignment", priority = Priority.HIGH),
-            Task(3, "Read 20 pages of book", priority = Priority.LOW),
-            Task(4, "Workout for 30 mins", priority = Priority.MEDIUM),
-            Task(5, "Call mom", priority = Priority.HIGH)
-        )
-        saveTasks(sample)
-        return sample
+    suspend fun cyclePriority(id: Int, currentPriority: Priority) {
+        val next = when (currentPriority) {
+            Priority.LOW -> Priority.MEDIUM
+            Priority.MEDIUM -> Priority.HIGH
+            Priority.HIGH -> Priority.LOW
+        }
+        dao.updatePriority(id, next.name)
+    }
+
+    suspend fun deleteTask(id: Int) {
+        dao.deleteById(id)
+    }
+
+    suspend fun seedIfEmpty() {
+        if (dao.getTaskCount() == 0) {
+            listOf(
+                TaskEntity(title = "Buy groceries", priority = Priority.MEDIUM.name),
+                TaskEntity(title = "Complete Kotlin assignment", priority = Priority.HIGH.name),
+                TaskEntity(title = "Read 20 pages of book", priority = Priority.LOW.name),
+                TaskEntity(title = "Workout for 30 mins", priority = Priority.MEDIUM.name),
+                TaskEntity(title = "Call mom", priority = Priority.HIGH.name)
+            ).forEach { dao.insertTask(it) }
+        }
     }
 }

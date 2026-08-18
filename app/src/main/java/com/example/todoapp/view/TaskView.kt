@@ -3,6 +3,7 @@
 package com.example.todoapp.view
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -29,7 +31,6 @@ import com.example.todoapp.model.Priority
 import com.example.todoapp.model.Task
 import com.example.todoapp.viewmodel.TaskViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.clickable
 
 private fun priorityColor(priority: Priority): Color = when (priority) {
     Priority.LOW -> Color(0xFF4CAF50)
@@ -47,6 +48,7 @@ private fun priorityLabel(priority: Priority): String = when (priority) {
 fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
     val tasks by viewModel.tasks.collectAsState()
     var newTaskText by rememberSaveable { mutableStateOf("") }
+    var taskBeingEdited by remember { mutableStateOf<Task?>(null) }
 
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
     val coroutineScope = rememberCoroutineScope()
@@ -101,7 +103,7 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
 
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    "Tap the colored bar on a task to change its priority",
+                    "Tap the colored bar to change priority • Tap the pencil icon to edit",
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -123,6 +125,7 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
                     onToggle = { viewModel.toggleTask(task.id) },
                     onDelete = { viewModel.deleteTask(task.id) },
                     onPriorityTap = { viewModel.cyclePriority(task.id) },
+                    onEditTap = { taskBeingEdited = task },
                     modifier = Modifier
                         .animateItem()
                         .padding(vertical = 5.dp)
@@ -132,6 +135,46 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
+
+    // Edit dialog — shows when a task is tapped
+    taskBeingEdited?.let { task ->
+        EditTaskDialog(
+            task = task,
+            onDismiss = { taskBeingEdited = null },
+            onConfirm = { newTitle ->
+                viewModel.updateTask(task.id, newTitle)
+                taskBeingEdited = null
+            }
+        )
+    }
+}
+
+@Composable
+fun EditTaskDialog(task: Task, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    var editedTitle by remember { mutableStateOf(task.title) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Task") },
+        text = {
+            OutlinedTextField(
+                value = editedTitle,
+                onValueChange = { editedTitle = it },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(editedTitle) }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -140,6 +183,7 @@ fun SwipeableTaskRow(
     onToggle: () -> Unit,
     onDelete: () -> Unit,
     onPriorityTap: () -> Unit,
+    onEditTap: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
@@ -170,12 +214,12 @@ fun SwipeableTaskRow(
             }
         }
     ) {
-        TaskRow(task = task, onToggle = onToggle, onPriorityTap = onPriorityTap)
+        TaskRow(task = task, onToggle = onToggle, onPriorityTap = onPriorityTap, onEditTap = onEditTap)
     }
 }
 
 @Composable
-fun TaskRow(task: Task, onToggle: () -> Unit, onPriorityTap: () -> Unit) {
+fun TaskRow(task: Task, onToggle: () -> Unit, onPriorityTap: () -> Unit, onEditTap: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
@@ -196,7 +240,11 @@ fun TaskRow(task: Task, onToggle: () -> Unit, onPriorityTap: () -> Unit) {
 
             Checkbox(checked = task.isDone, onCheckedChange = { onToggle() })
 
-            Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
                 Text(
                     text = task.title,
                     textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
@@ -209,6 +257,14 @@ fun TaskRow(task: Task, onToggle: () -> Unit, onPriorityTap: () -> Unit) {
                     text = priorityLabel(task.priority),
                     fontSize = 11.sp,
                     color = priorityColor(task.priority)
+                )
+            }
+
+            IconButton(onClick = onEditTap) {
+                Icon(
+                    Icons.Filled.Edit,
+                    contentDescription = "Edit task",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
