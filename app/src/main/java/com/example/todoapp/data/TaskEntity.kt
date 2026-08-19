@@ -10,13 +10,17 @@ data class TaskEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val title: String,
+    val description: String = "",
     val isDone: Boolean = false,
-    val priority: String = Priority.MEDIUM.name
+    val priority: String = Priority.MEDIUM.name,
+    val createdAt: Long = System.currentTimeMillis()
 )
 
 fun TaskEntity.toTask() = Task(
     id = id,
     title = title,
+    description = description,
     isDone = isDone,
-    priority = try { Priority.valueOf(priority) } catch (e: Exception) { Priority.MEDIUM }
+    priority = try { Priority.valueOf(priority) } catch (e: Exception) { Priority.MEDIUM },
+    createdAt = createdAt
 )

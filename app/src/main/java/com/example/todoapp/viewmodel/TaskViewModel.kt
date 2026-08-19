@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.todoapp.data.TaskRepository
+import com.example.todoapp.model.Priority
 import com.example.todoapp.model.Task
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,13 +18,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
     val tasks: StateFlow<List<Task>> = repository.tasks
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    init {
-        viewModelScope.launch { repository.seedIfEmpty() }
-    }
-
-    fun addTask(title: String) {
+    fun addTask(title: String, description: String, priority: Priority) {
         if (title.isBlank()) return
-        viewModelScope.launch { repository.addTask(title.trim()) }
+        viewModelScope.launch { repository.addTask(title.trim(), description.trim(), priority) }
     }
 
     fun toggleTask(id: Int) {
@@ -37,12 +34,14 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateTask(id: Int, newTitle: String) {
+    fun updateTask(id: Int, newTitle: String, newDescription: String, priority: Priority) {
         if (newTitle.isBlank()) return
-        viewModelScope.launch { repository.updateTask(id, newTitle.trim()) }
+        viewModelScope.launch { repository.updateTask(id, newTitle.trim(), newDescription.trim(), priority) }
     }
 
-    fun deleteTask(id: Int) {
-        viewModelScope.launch { repository.deleteTask(id) }
+    fun deleteTasks(ids: Set<Int>) {
+        viewModelScope.launch {
+            ids.forEach { repository.deleteTask(it) }
+        }
     }
 }

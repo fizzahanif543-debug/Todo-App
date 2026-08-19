@@ -12,12 +12,19 @@ class TaskRepository(context: Context) {
 
     val tasks: Flow<List<Task>> = dao.getAllTasks().map { list -> list.map { it.toTask() } }
 
-    suspend fun addTask(title: String) {
-        dao.insertTask(TaskEntity(title = title, priority = Priority.MEDIUM.name))
+    suspend fun addTask(title: String, description: String, priority: Priority) {
+        dao.insertTask(
+            TaskEntity(
+                title = title,
+                description = description,
+                priority = priority.name,
+                createdAt = System.currentTimeMillis()
+            )
+        )
     }
 
-    suspend fun updateTask(id: Int, newTitle: String) {
-        dao.updateTitle(id, newTitle)
+    suspend fun updateTask(id: Int, newTitle: String, newDescription: String, priority: Priority) {
+        dao.updateTask(id, newTitle, newDescription, priority.name)
     }
 
     suspend fun toggleTask(id: Int) {
@@ -35,17 +42,5 @@ class TaskRepository(context: Context) {
 
     suspend fun deleteTask(id: Int) {
         dao.deleteById(id)
-    }
-
-    suspend fun seedIfEmpty() {
-        if (dao.getTaskCount() == 0) {
-            listOf(
-                TaskEntity(title = "Buy groceries", priority = Priority.MEDIUM.name),
-                TaskEntity(title = "Complete Kotlin assignment", priority = Priority.HIGH.name),
-                TaskEntity(title = "Read 20 pages of book", priority = Priority.LOW.name),
-                TaskEntity(title = "Workout for 30 mins", priority = Priority.MEDIUM.name),
-                TaskEntity(title = "Call mom", priority = Priority.HIGH.name)
-            ).forEach { dao.insertTask(it) }
-        }
     }
 }
