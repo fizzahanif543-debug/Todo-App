@@ -7,6 +7,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -14,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.todoapp.model.Priority
+import com.example.todoapp.model.TaskFilter
 import com.example.todoapp.viewmodel.TaskViewModel
 import androidx.compose.ui.unit.dp
 
@@ -25,9 +29,29 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
     var showAddDialog by rememberSaveable { mutableStateOf(false) }
     var editingTaskId by rememberSaveable { mutableStateOf<Int?>(null) }
     var selectedIds by rememberSaveable { mutableStateOf(setOf<Int>()) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var isSearchActive by rememberSaveable { mutableStateOf(false) }
+    var selectedFilter by rememberSaveable { mutableStateOf(TaskFilter.ALL) }
 
     val inSelectionMode = selectedIds.isNotEmpty()
     val taskBeingEdited = editingTaskId?.let { id -> tasks.find { it.id == id } }
+
+    // Pehle tab (All/Pending/Completed) ke hisab se filter, phir search apply
+    val filteredTasks = remember(tasks, searchQuery, selectedFilter) {
+        val byTab = when (selectedFilter) {
+            TaskFilter.ALL -> tasks
+            TaskFilter.PENDING -> tasks.filter { !it.isDone }
+            TaskFilter.COMPLETED -> tasks.filter { it.isDone }
+        }
+        if (searchQuery.isBlank()) {
+            byTab
+        } else {
+            byTab.filter { task ->
+                task.title.contains(searchQuery, ignoreCase = true) ||
+                        task.description.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -41,7 +65,12 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
                     }
                 )
             } else {
-                NormalTopBar()
+                NormalTopBar(
+                    isSearchActive = isSearchActive,
+                    onSearchActiveChange = { isSearchActive = it },
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = { searchQuery = it }
+                )
             }
         },
         floatingActionButton = {
@@ -53,44 +82,75 @@ fun TodoScreen(viewModel: TaskViewModel = viewModel()) {
                     Icon(Icons.Filled.Add, contentDescription = "Add task", tint = MaterialTheme.colorScheme.onPrimary)
                 }
             }
+        },
+        bottomBar = {
+            if (!inSelectionMode) {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = selectedFilter == TaskFilter.ALL,
+                        onClick = { selectedFilter = TaskFilter.ALL },
+                        icon = { Icon(Icons.Filled.List, contentDescription = null) },
+                        label = { Text("All") }
+                    )
+                    NavigationBarItem(
+                        selected = selectedFilter == TaskFilter.PENDING,
+                        onClick = { selectedFilter = TaskFilter.PENDING },
+                        icon = { Icon(Icons.Filled.Schedule, contentDescription = null) },
+                        label = { Text("Pending") }
+                    )
+                    NavigationBarItem(
+                        selected = selectedFilter == TaskFilter.COMPLETED,
+                        onClick = { selectedFilter = TaskFilter.COMPLETED },
+                        icon = { Icon(Icons.Filled.CheckCircle, contentDescription = null) },
+                        label = { Text("Completed") }
+                    )
+                }
+            }
         }
     ) { padding ->
         Surface(
             color = MaterialTheme.colorScheme.background,
             modifier = Modifier.padding(padding).fillMaxSize()
         ) {
-            if (tasks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "No tasks yet. Tap + to add one!",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(tasks, key = { it.id }) { task ->
-                        TaskRow(
-                            task = task,
-                            isSelected = task.id in selectedIds,
-                            selectionMode = inSelectionMode,
-                            onToggleDone = { viewModel.toggleTask(task.id) },
-                            onPriorityTap = { viewModel.cyclePriority(task.id) },
-                            onDeleteTap = { viewModel.deleteTasks(setOf(task.id)) },
-                            onClick = {
-                                if (inSelectionMode) {
-                                    selectedIds = if (task.id in selectedIds)
-                                        selectedIds - task.id else selectedIds + task.id
-                                } else {
-                                    editingTaskId = task.id
-                                }
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (filteredTasks.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize().weight(1f), contentAlignment = Alignment.Center) {
+                        Text(
+                            when {
+                                searchQuery.isNotBlank() -> "No tasks match \"$searchQuery\""
+                                selectedFilter == TaskFilter.PENDING -> "No pending tasks!"
+                                selectedFilter == TaskFilter.COMPLETED -> "No completed tasks yet."
+                                else -> "No tasks yet. Tap + to add one!"
                             },
-                            onLongClick = { selectedIds = selectedIds + task.id },
-                            modifier = Modifier.animateItem()
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().weight(1f),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(filteredTasks, key = { it.id }) { task ->
+                            TaskRow(
+                                task = task,
+                                isSelected = task.id in selectedIds,
+                                selectionMode = inSelectionMode,
+                                onToggleDone = { viewModel.toggleTask(task.id) },
+                                onPriorityTap = { viewModel.cyclePriority(task.id) },
+                                onDeleteTap = { viewModel.deleteTasks(setOf(task.id)) },
+                                onClick = {
+                                    if (inSelectionMode) {
+                                        selectedIds = if (task.id in selectedIds)
+                                            selectedIds - task.id else selectedIds + task.id
+                                    } else {
+                                        editingTaskId = task.id
+                                    }
+                                },
+                                onLongClick = { selectedIds = selectedIds + task.id },
+                                modifier = Modifier.animateItem()
+                            )
+                        }
                     }
                 }
             }
