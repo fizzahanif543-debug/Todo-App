@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.todoapp.model.Priority
 import com.example.todoapp.model.Task
+import java.time.LocalDate
 
 @Entity(tableName = "tasks")
 data class TaskEntity(
@@ -13,7 +14,8 @@ data class TaskEntity(
     val description: String = "",
     val isDone: Boolean = false,
     val priority: String = Priority.MEDIUM.name,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val dueDateEpochDay: Long = LocalDate.now().toEpochDay()
 )
 
 fun TaskEntity.toTask() = Task(
@@ -22,5 +24,6 @@ fun TaskEntity.toTask() = Task(
     description = description,
     isDone = isDone,
     priority = try { Priority.valueOf(priority) } catch (e: Exception) { Priority.MEDIUM },
-    createdAt = createdAt
+    createdAt = createdAt,
+    dueDate = try { LocalDate.ofEpochDay(dueDateEpochDay) } catch (e: Exception) { LocalDate.now() }
 )

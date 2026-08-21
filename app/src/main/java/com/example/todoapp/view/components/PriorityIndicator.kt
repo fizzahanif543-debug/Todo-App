@@ -1,13 +1,11 @@
 package com.example.todoapp.view.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,15 +24,13 @@ fun priorityLabel(priority: Priority): String = when (priority) {
     Priority.HIGH -> "High"
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PriorityBar(priority: Priority, height: androidx.compose.ui.unit.Dp, onTap: () -> Unit) {
+fun PriorityBar(priority: Priority, height: androidx.compose.ui.unit.Dp) {
     Box(
         modifier = Modifier
             .width(10.dp)
             .height(height)
             .background(priorityColor(priority))
-            .combinedClickable(onClick = onTap, onLongClick = {})
     )
 }
 

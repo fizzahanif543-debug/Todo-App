@@ -16,8 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import com.example.todoapp.model.Priority
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.Dp
+import com.example.todoapp.view.components.DueDatePickerField
 import com.example.todoapp.view.components.PriorityDropdown
+import java.time.LocalDate
 
 @Composable
 fun TaskFormDialog(
@@ -25,14 +26,19 @@ fun TaskFormDialog(
     initialTitle: String,
     initialDescription: String,
     initialPriority: Priority,
+    initialDueDate: LocalDate,
+    minDueDate: LocalDate,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Priority) -> Unit
+    onConfirm: (String, String, Priority, LocalDate) -> Unit
 ) {
 
     var taskTitle by rememberSaveable { mutableStateOf(initialTitle) }
     var taskDescription by rememberSaveable { mutableStateOf(initialDescription) }
     var selectedPriority by rememberSaveable { mutableStateOf(initialPriority) }
     var dropdownExpanded by rememberSaveable { mutableStateOf(false) }
+    var dueDateEpochDay by rememberSaveable { mutableStateOf(initialDueDate.toEpochDay()) }
+
+    val selectedDueDate = LocalDate.ofEpochDay(dueDateEpochDay)
 
 
     val maxContentHeight = LocalConfiguration.current.screenHeightDp.dp * 0.55f
@@ -75,11 +81,18 @@ fun TaskFormDialog(
                         dropdownExpanded = false
                     }
                 )
+
+                DueDatePickerField(
+                    label = "Due date",
+                    selectedDate = selectedDueDate,
+                    onDateChange = { dueDateEpochDay = it.toEpochDay() },
+                    minDate = minDueDate
+                )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onConfirm(taskTitle, taskDescription, selectedPriority) },
+                onClick = { onConfirm(taskTitle, taskDescription, selectedPriority, selectedDueDate) },
                 enabled = taskTitle.isNotBlank()
             ) {
                 Text("Save")

@@ -12,21 +12,12 @@ interface TaskDao {
     @Insert
     suspend fun insertTask(task: TaskEntity)
 
-    @Query("UPDATE tasks SET title = :newTitle, description = :newDescription WHERE id = :id")
-    suspend fun updateTitleAndDescription(id: Int, newTitle: String, newDescription: String)
-
-    @Query("UPDATE tasks SET title = :newTitle, description = :newDescription, priority = :priority WHERE id = :id")
-    suspend fun updateTask(id: Int, newTitle: String, newDescription: String, priority: String)
+    @Query("UPDATE tasks SET title = :newTitle, description = :newDescription, priority = :priority, dueDateEpochDay = :dueDateEpochDay WHERE id = :id")
+    suspend fun updateTask(id: Int, newTitle: String, newDescription: String, priority: String, dueDateEpochDay: Long)
 
     @Query("UPDATE tasks SET isDone = NOT isDone WHERE id = :id")
     suspend fun toggleDone(id: Int)
 
-    @Query("UPDATE tasks SET priority = :priority WHERE id = :id")
-    suspend fun updatePriority(id: Int, priority: String)
-
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Int)
-
-    @Query("SELECT COUNT(*) FROM tasks")
-    suspend fun getTaskCount(): Int
 }

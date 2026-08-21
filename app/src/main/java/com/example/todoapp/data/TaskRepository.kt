@@ -5,6 +5,7 @@ import com.example.todoapp.model.Priority
 import com.example.todoapp.model.Task
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 
 class TaskRepository(context: Context) {
 
@@ -12,32 +13,24 @@ class TaskRepository(context: Context) {
 
     val tasks: Flow<List<Task>> = dao.getAllTasks().map { list -> list.map { it.toTask() } }
 
-    suspend fun addTask(title: String, description: String, priority: Priority) {
+    suspend fun addTask(title: String, description: String, priority: Priority, dueDate: LocalDate? = null) {
         dao.insertTask(
             TaskEntity(
                 title = title,
                 description = description,
                 priority = priority.name,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                dueDateEpochDay = (dueDate ?: LocalDate.now()).toEpochDay()
             )
         )
     }
 
-    suspend fun updateTask(id: Int, newTitle: String, newDescription: String, priority: Priority) {
-        dao.updateTask(id, newTitle, newDescription, priority.name)
+    suspend fun updateTask(id: Int, newTitle: String, newDescription: String, priority: Priority, dueDate: LocalDate) {
+        dao.updateTask(id, newTitle, newDescription, priority.name, dueDate.toEpochDay())
     }
 
     suspend fun toggleTask(id: Int) {
         dao.toggleDone(id)
-    }
-
-    suspend fun cyclePriority(id: Int, currentPriority: Priority) {
-        val next = when (currentPriority) {
-            Priority.LOW -> Priority.MEDIUM
-            Priority.MEDIUM -> Priority.HIGH
-            Priority.HIGH -> Priority.LOW
-        }
-        dao.updatePriority(id, next.name)
     }
 
     suspend fun deleteTask(id: Int) {

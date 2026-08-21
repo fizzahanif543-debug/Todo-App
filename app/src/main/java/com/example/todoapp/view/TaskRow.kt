@@ -17,7 +17,6 @@ import com.example.todoapp.model.Task
 import com.example.todoapp.view.components.PriorityBar
 import com.example.todoapp.view.components.priorityColor
 import com.example.todoapp.view.components.priorityLabel
-import com.example.todoapp.view.util.formatTimeAgo
 
 @Composable
 fun TaskRow(
@@ -25,7 +24,6 @@ fun TaskRow(
     isSelected: Boolean,
     selectionMode: Boolean,
     onToggleDone: () -> Unit,
-    onPriorityTap: () -> Unit,
     onDeleteTap: () -> Unit,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
@@ -53,8 +51,7 @@ fun TaskRow(
             } else {
                 PriorityBar(
                     priority = task.priority,
-                    height = if (task.description.isBlank()) 60.dp else 76.dp,
-                    onTap = onPriorityTap
+                    height = if (task.description.isBlank()) 60.dp else 76.dp
                 )
                 Checkbox(checked = task.isDone, onCheckedChange = { onToggleDone() })
             }
@@ -92,7 +89,7 @@ fun TaskRow(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = formatTimeAgo(task.createdAt),
+                            text = "Due " + task.dueDate.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM")),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

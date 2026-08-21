@@ -1,5 +1,7 @@
 package com.example.todoapp.model
 
+import java.time.LocalDate
+
 enum class Priority { LOW, MEDIUM, HIGH }
 
 data class Task(
@@ -8,5 +10,6 @@ data class Task(
     val description: String = "",
     val isDone: Boolean = false,
     val priority: Priority = Priority.MEDIUM,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val dueDate: LocalDate = LocalDate.now()
 )
